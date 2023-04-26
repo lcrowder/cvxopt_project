@@ -3,6 +3,7 @@ from scipy.interpolate import CloughTocher2DInterpolator
 import scipy
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import copy
 import gp3
 
@@ -115,9 +116,7 @@ def grad_expected_improvement(x,train_x,train_f,k,grad_k):
 
     return grad_ei
 
-def nesterovAscent(x0,gradf,t,f):
-    max_iters=10**3
-    tol=1e-8
+def nesterovAscent(x0,gradf,t,f,max_iters=10**3,tol=1e-8,errmsg=False):
     err=[]
     x=copy.copy(x0)
     if x.ndim==1:
@@ -135,11 +134,47 @@ def nesterovAscent(x0,gradf,t,f):
         f_arr.append(f(x))
         if err[i]<tol:
             break
-        if i==max_iters-1:
+        if i==max_iters-1 and errmsg:
             print("Max iterations reached in gradient ascent.")
     return x, err, f_arr
 
-def test_2d_withGD():
+def plot_ei_GA(exp_imp,xf,iter):
+    xmax=max(4,abs(np.max(xf)))+1
+
+    xplt=np.linspace(-xmax,xmax,30)
+    Z=np.zeros((len(xplt),len(xplt)))
+    X,Y=np.meshgrid(xplt,xplt)
+
+    for i in range(len(xplt)):
+        for j in range(len(xplt)):
+            xij=np.array([[xplt[i],xplt[j]]])
+            Z[i,j]=exp_imp(xij)
+
+
+    # Create a contour plot
+    plt.figure()
+    plt.contourf(X, Y, Z)
+    plt.colorbar()
+
+    # Add a single point to the plot
+    plt.plot(xf.flatten()[0],xf.flatten()[1] , 'ro')
+
+    # Set the labels for the axes
+    plt.xlabel('X')
+    plt.ylabel('Y')
+
+    plt.xlim(-xmax, xmax)
+    plt.ylim(-xmax, xmax)
+    title="Expected Improvement, iteration "+str(iter)
+    plt.title(title)
+
+    # Show the plot
+    plt.show()  
+
+
+
+
+def test_2d_withGD(num_samples=20):
 
     x = 8 * rng.random(20) - 4
     y = 8 * rng.random(20) - 4
@@ -169,7 +204,7 @@ def test_2d_withGD():
     sampler = scipy.stats.qmc.LatinHypercube(2)
     test_pts = []
 
-    for i in range(20):
+    for i in range(num_samples):
 
         print("sample iteration number ", i+1)
 
@@ -180,10 +215,38 @@ def test_2d_withGD():
         grad_exp_imp = lambda x: grad_expected_improvement(x,train_x,train_f,k,grad_k)
         #------------------------------------------------------------
 
-        x0= 8 * sampler.random(1) - 4
+        # Sample points randomly in domain of interest
+        x0= 8 * sampler.random(5) - 4
+
+        # Sample points in the neighborhood of training data
+        radius=1
+        if len(test_pts)>0:
+            directions=np.random.rand(len(test_pts),2)
+            norms=np.linalg.norm(directions,ord=2,axis=1)
+            directions=directions/norms.reshape((len(norms),1))
+
+            radii=np.random.rand(len(test_pts),1)
+
+            x0_nbhd = np.tile(radii,(1,2))*directions + np.array(test_pts)
+            x0=np.vstack((x0,x0_nbhd))
+        
+        # print(x0.shape)
+        
+        # Run gradient ascent
+        opt_f = []
+        opt_x = []
         t=0.1
-        GApars=nesterovAscent(x0,grad_exp_imp,t,exp_imp)
-        new_x=GApars[0]
+        for j in range(x0.shape[0]):
+            GApars=nesterovAscent(x0[j],grad_exp_imp,t,exp_imp,20)
+            opt_x.append(GApars[0])
+            fj=GApars[2][-1].flatten()[0]
+            opt_f.append(fj)
+        
+        jmax=np.argmax(opt_f)
+        new_x=opt_x[jmax]
+
+        if jmax >= 5:
+            print("new point is in neighborhood of training data")
 
         nx = (new_x[0,0], new_x[0,1])
         pts.append(nx)
@@ -194,12 +257,15 @@ def test_2d_withGD():
 
         test_pts.append(nx)
 
+        plot_ei_GA(exp_imp,new_x,i+1)
+
     tp = np.array(test_pts)
+    xmax=max(4,abs(np.max(tp.flatten())))+1
     fig = plt.figure()
     ax = fig.add_subplot(111)
     
-    xbase = np.linspace(-4, 4, 100)
-    ybase = np.linspace(-4, 4, 100)
+    xbase = np.linspace(-xmax, xmax, 100)
+    ybase = np.linspace(-xmax, xmax, 100)
     X, Y = np.meshgrid(xbase, ybase)
     # l1 = ax.contourf(X, Y, z(X, Y))
     # l1 = ax.contourf(X, Y, r1(X, Y))
@@ -241,4 +307,4 @@ g8=grad_expected_improvement(train_x+1,train_x,train_f,k,grad_k)
 
 # print(g1); print(g2); print(g3); print(g4); print(g5); print(g6); print(g7); print(g8);
 
-test_2d_withGD()
+test_2d_withGD(10)
