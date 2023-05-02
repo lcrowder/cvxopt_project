@@ -1,3 +1,8 @@
+"""
+This code includes extra functions which can be used with gp3.py to implement nesterov-accelerated gradient ascent
+to optimize the expected improvement acquisition function, with a Matern nu=5/2 kernel function.
+"""
+
 import numpy as np
 from scipy.interpolate import CloughTocher2DInterpolator
 import scipy
@@ -322,6 +327,7 @@ def test_2d_withGD(num_samples=20):
     plt.close()
 
 
+# NOT FUNCTIONAL
 def test_rosenbrock_5D(num_samples=20):
     x = 8 * rng.random(20) - 4
     y = 8 * rng.random(20) - 4
@@ -464,6 +470,3 @@ g8=grad_expected_improvement(train_x+1,train_x,train_f,k,grad_k)
 
 os.system("rm ./figures/*")
 test_2d_withGD(10)
-
-# x=np.zeros(5)
-# print(rosenbrock(x))
