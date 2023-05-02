@@ -2,7 +2,6 @@ import numpy as np
 from scipy.interpolate import CloughTocher2DInterpolator
 import scipy
 from scipy.stats import norm
-
 import matplotlib.pyplot as plt
 
 def cov_from_kernel(x, k):
@@ -78,6 +77,7 @@ def expected_improvement(train_f, mu, sigma, xi=0.01):
     return ei
 
 def plot_ei(test_x, ei):
+    
     xbase = np.linspace(-4, 4, 100)
     ybase = np.linspace(-4, 4, 100)
     X, Y = np.meshgrid(xbase, ybase)
@@ -90,6 +90,7 @@ def plot_ei(test_x, ei):
     plt.legend()
     plt.colorbar()
     plt.show()
+
 
 def test_2d():
 
@@ -117,13 +118,13 @@ def test_2d():
 
     test_pts = []
 
-    for i in range(20):
-        test_x = 8 * sampler.random(100) - 4
+    for i in range(10):
+        test_x = 8 * sampler.random(25+i) - 4
 
         m1, sigma = get_mean_and_sigma(test_x, train_x, train_f, m52)
 
         ei = expected_improvement(train_f, m1, sigma)
-        plot_ei(test_x, ei)
+        # plot_ei(test_x, ei)
 
         new_x = test_x[np.argmax(ei)]
         nx = (new_x[0], new_x[1])
@@ -139,8 +140,8 @@ def test_2d():
     fig = plt.figure()
     ax = fig.add_subplot(111)
     
-    xbase = np.linspace(-4, 4, 100)
-    ybase = np.linspace(-4, 4, 100)
+    xbase = np.linspace(-10, 10, 100)
+    ybase = np.linspace(-10, 10, 100)
     X, Y = np.meshgrid(xbase, ybase)
     # l1 = ax.contourf(X, Y, z(X, Y))
     # l1 = ax.contourf(X, Y, r1(X, Y))
@@ -174,5 +175,5 @@ def test_2d():
 
 
 
-# rng = np.random.default_rng(20230416)
-# test_2d()
+rng = np.random.default_rng(20230416)
+test_2d()
